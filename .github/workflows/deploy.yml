@@ -20,11 +20,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install git-lfs
           git lfs install
-          git lfs pull      # ensure LFS files are materialised
+          git lfs pull
 
       - name: Push to Hugging Face Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           git remote add space https://user:$HF_TOKEN@huggingface.co/spaces/Andro777/hybrid-nst-demo
-          git push --force-with-lease space main
+          git push --force space main
