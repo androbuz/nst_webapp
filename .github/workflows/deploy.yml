@@ -24,7 +24,7 @@ jobs:
       - name: Sync to Hugging Face Space
         uses: huggingface/hub-sync@v1
         with:
-          space_id: YOUR_USERNAME/YOUR_SPACE_NAME   # Replace with your Space ID
+          space_id: Andro777/hybrid-nst-demo
           token: ${{ secrets.HF_TOKEN }}
           repo_type: space
           # By default, it pushes the current branch to the Space's main branch
