@@ -1,10 +1,9 @@
-# .github/workflows/deploy.yml
 name: Sync to Hugging Face Space
 
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:   # allow manual triggers
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -13,7 +12,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          lfs: true   # ensure Git LFS files are fetched
+          lfs: true   # important for large model files
 
       - name: Install Git LFS
         run: |
@@ -21,10 +20,17 @@ jobs:
           sudo apt-get install git-lfs
           git lfs install
 
-      - name: Sync to Hugging Face Space
-        uses: huggingface/hub-sync@v1
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          space_id: Andro777/hybrid-nst-demo
-          token: ${{ secrets.HF_TOKEN }}
-          repo_type: space
-          # By default, it pushes the current branch to the Space's main branch
+          python-version: '3.10'
+
+      - name: Install huggingface-hub
+        run: pip install huggingface-hub
+
+      - name: Sync to Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git remote add space https://user:$HF_TOKEN@huggingface.co/spaces/Andro777/hybrid-nst-demo
+          git push --force space main
