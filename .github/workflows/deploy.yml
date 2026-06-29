@@ -12,25 +12,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          lfs: true   # important for large model files
+          lfs: true
+          fetch-depth: 0   # full history, avoids shallow rejection
 
       - name: Install Git LFS
         run: |
           sudo apt-get update
           sudo apt-get install git-lfs
           git lfs install
+          git lfs pull      # ensure LFS files are materialised
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install huggingface-hub
-        run: pip install huggingface-hub
-
-      - name: Sync to Hugging Face Space
+      - name: Push to Hugging Face Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           git remote add space https://user:$HF_TOKEN@huggingface.co/spaces/Andro777/hybrid-nst-demo
-          git push --force space main
+          git push --force-with-lease space main
