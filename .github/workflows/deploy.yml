@@ -1,0 +1,30 @@
+# .github/workflows/deploy.yml
+name: Sync to Hugging Face Space
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:   # allow manual trigger
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          lfs: true   # ensure Git LFS files are fetched
+
+      - name: Install Git LFS
+        run: |
+          sudo apt-get update
+          sudo apt-get install git-lfs
+          git lfs install
+
+      - name: Sync to Hugging Face Space
+        uses: huggingface/hub-sync@v1
+        with:
+          space_id: YOUR_USERNAME/YOUR_SPACE_NAME   # Replace with your Space ID
+          token: ${{ secrets.HF_TOKEN }}
+          repo_type: space
+          # By default, it pushes the current branch to the Space's main branch
