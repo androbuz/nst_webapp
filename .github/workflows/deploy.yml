@@ -4,7 +4,7 @@ name: Sync to Hugging Face Space
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:   # allow manual trigger
+  workflow_dispatch:   # allow manual triggers
 
 jobs:
   deploy:
