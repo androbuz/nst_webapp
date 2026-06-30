@@ -1,7 +1,7 @@
+import tensorflow as tf
 import numpy as np
 from PIL import Image
 from transformers import CLIPProcessor
-from tflite_runtime.interpreter import Interpreter
 from app.config import settings
 
 # Global interpreters
@@ -10,8 +10,8 @@ _interp_text = None
 _interp_clip = None
 _processor = None
 
-def _load_interpreter(model_path: str) -> Interpreter:
-    return Interpreter(model_path=model_path)
+def _load_interpreter(model_path: str) -> tf.lite.Interpreter:
+    return tf.lite.Interpreter(model_path=model_path)
 
 def _get_clip_processor():
     global _processor
@@ -37,7 +37,7 @@ def _preprocess_image(pil_image: Image.Image) -> np.ndarray:
     arr = np.array(img, dtype=np.float32) / 255.0
     return np.expand_dims(arr, axis=0)   # (1, 256, 256, 3)
 
-def _run_tflite(interpreter: Interpreter, input_data: list) -> np.ndarray:
+def _run_tflite(interpreter: tf.lite.Interpreter, input_data: list) -> np.ndarray:
     """Set inputs, run inference, return output."""
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
