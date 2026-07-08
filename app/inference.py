@@ -3,6 +3,7 @@ import numpy as np
 from PIL import Image
 from transformers import CLIPProcessor
 from app.config import settings
+import os
 
 # Global interpreters
 _interp_image = None
@@ -11,13 +12,20 @@ _interp_clip = None
 _processor = None
 
 def _load_interpreter(model_path: str) -> tf.lite.Interpreter:
-    return tf.lite.Interpreter(model_path=model_path)
-
-def _get_clip_processor():
-    global _processor
-    if _processor is None:
-        _processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-    return _processor
+    """Load TFLite interpreter with Flex delegate support."""
+    # On Linux, the Flex delegate library is named 'libflex_delegate.so'
+    # If it fails, we fall back to the default interpreter.
+    try:
+        flex_delegate = tf.lite.experimental.load_delegate('libflex_delegate.so')
+        interpreter = tf.lite.Interpreter(
+            model_path=model_path,
+            experimental_delegates=[flex_delegate]
+        )
+    except Exception as e:
+        # Fallback: try without delegate (may still work for some ops)
+        print(f"Warning: Could not load Flex delegate: {e}. Falling back to default interpreter.")
+        interpreter = tf.lite.Interpreter(model_path=model_path)
+    return interpreter
 
 def load_models():
     global _interp_image, _interp_text, _interp_clip
@@ -30,6 +38,12 @@ def load_models():
     if _interp_clip is None:
         _interp_clip = _load_interpreter(settings.CLIP_ENCODER_MODEL)
         _interp_clip.allocate_tensors()
+
+def _get_clip_processor():
+    global _processor
+    if _processor is None:
+        _processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+    return _processor
 
 def _preprocess_image(pil_image: Image.Image) -> np.ndarray:
     """Resize to 256x256 and normalize to [0,1]."""
