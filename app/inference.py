@@ -1,34 +1,3 @@
-Introduction: 
-Comparison of traditional machine learning (pg. 73) vs nst
-talk about nst falling under generation rather than classification or regression
-
-mention where techniques came from using references from notebook
-	mention NPR in the NST A review
-
-
-We can mention that currently, I haven't implemented Quantitative Benchmarking nor Qualitative & Saliency Verification.
-
-Okay, I need to write a feature prototype section in the writeup. Write it extensively for me. It should be written in paragraphs (no bullet points or something). Also, I need a MLOps pipeline architecture image; refer to how we are deploying our application here and give me the code to generate the image in python (I will use colab notebook). And leave a placeholder for the MLOps pipeline. I want an extensive report.  
-
-Okay, I need to mention this in the limitations of the project. Write a paragraph or two explaining the limitation and measures taken. 
-
-
-Mentions:
-- use of decorators and custom model definition repetitions in exporting models
-
-
-Ideas
-----
-use csvlogger callbacks and put it in the report either as a table
-----
-
-Code references:
-- all the code for exporting model (find a relevant source)
-- total variational loss (ltv) ?
-
-
-
-
 import tensorflow as tf
 import numpy as np
 from PIL import Image
