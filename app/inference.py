@@ -1,8 +1,40 @@
+Introduction: 
+Comparison of traditional machine learning (pg. 73) vs nst
+talk about nst falling under generation rather than classification or regression
+
+mention where techniques came from using references from notebook
+	mention NPR in the NST A review
+
+
+We can mention that currently, I haven't implemented Quantitative Benchmarking nor Qualitative & Saliency Verification.
+
+Okay, I need to write a feature prototype section in the writeup. Write it extensively for me. It should be written in paragraphs (no bullet points or something). Also, I need a MLOps pipeline architecture image; refer to how we are deploying our application here and give me the code to generate the image in python (I will use colab notebook). And leave a placeholder for the MLOps pipeline. I want an extensive report.  
+
+Okay, I need to mention this in the limitations of the project. Write a paragraph or two explaining the limitation and measures taken. 
+
+
+Mentions:
+- use of decorators and custom model definition repetitions in exporting models
+
+
+Ideas
+----
+use csvlogger callbacks and put it in the report either as a table
+----
+
+Code references:
+- all the code for exporting model (find a relevant source)
+- total variational loss (ltv) ?
+
+
+
+
 import tensorflow as tf
 import numpy as np
 from PIL import Image
 from transformers import CLIPProcessor
 from app.config import settings
+import os
 
 # Global interpreters
 _interp_image = None
@@ -11,13 +43,20 @@ _interp_clip = None
 _processor = None
 
 def _load_interpreter(model_path: str) -> tf.lite.Interpreter:
-    return tf.lite.Interpreter(model_path=model_path)
-
-def _get_clip_processor():
-    global _processor
-    if _processor is None:
-        _processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-    return _processor
+    """Load TFLite interpreter with Flex delegate support."""
+    # On Linux, the Flex delegate library is named 'libflex_delegate.so'
+    # If it fails, we fall back to the default interpreter.
+    try:
+        flex_delegate = tf.lite.experimental.load_delegate(
+            tf.lite.experimental.load_delegate(
+                os.path.join(tf.sysconfig.get_lib(), 'libflex_delegate.so')
+            )
+        )
+    except Exception as e:
+        # Fallback: try without delegate (may still work for some ops)
+        print(f"Warning: Could not load Flex delegate: {e}. Falling back to default interpreter.")
+        interpreter = tf.lite.Interpreter(model_path=model_path)
+    return interpreter
 
 def load_models():
     global _interp_image, _interp_text, _interp_clip
@@ -30,6 +69,12 @@ def load_models():
     if _interp_clip is None:
         _interp_clip = _load_interpreter(settings.CLIP_ENCODER_MODEL)
         _interp_clip.allocate_tensors()
+
+def _get_clip_processor():
+    global _processor
+    if _processor is None:
+        _processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+    return _processor
 
 def _preprocess_image(pil_image: Image.Image) -> np.ndarray:
     """Resize to 256x256 and normalize to [0,1]."""
