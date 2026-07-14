@@ -1,24 +1,22 @@
+import os
 import numpy as np
 from PIL import Image
 from transformers import CLIPProcessor
 from app.config import settings
-import os
+
+# Enable verbose logging for the Flex delegate (helps with debugging)
+os.environ["TF_CPP_VLOG_LEVEL"] = "1"
 
 # Try to import ai_edge_litert (LiteRT) – the new recommended interpreter
 try:
-    import ai_edge_litert as litert
-    # The Interpreter class is under the 'lite' submodule in some versions
-    try:
-        Interpreter = litert.lite.Interpreter
-    except AttributeError:
-        # Fallback: direct attribute
-        Interpreter = litert.Interpreter
+    from ai_edge_litert.interpreter import Interpreter
+    from ai_edge_litert import load_delegate
     USE_LITERT = True
     print("Using ai_edge_litert interpreter.")
-except (ImportError, AttributeError):
+except (ImportError, AttributeError) as e:
     USE_LITERT = False
     import tensorflow as tf
-    print("Falling back to TensorFlow Lite interpreter with Flex delegate.")
+    print(f"Falling back to TensorFlow Lite interpreter. Error: {e}")
 
 # Global interpreters
 _interp_image = None
@@ -27,12 +25,23 @@ _interp_clip = None
 _processor = None
 
 def _load_interpreter(model_path: str):
+    """Load TFLite/LiteRT interpreter with Flex delegate support."""
     if USE_LITERT:
-        return Interpreter(model_path=model_path)
+        # Try to load the Flex delegate explicitly
+        try:
+            # The Flex delegate library is typically named libtensorflowlite_flex.so
+            # or libflex_delegate.so in the TensorFlow installation
+            flex_delegate = load_delegate('libtensorflowlite_flex.so')
+            interpreter = Interpreter(model_path=model_path, delegates=[flex_delegate])
+            print(f"Loaded LiteRT interpreter with Flex delegate for {model_path}")
+        except Exception as e:
+            print(f"Warning: Could not load Flex delegate: {e}. Trying without delegate.")
+            interpreter = Interpreter(model_path=model_path)
+        return interpreter
     else:
         # Use TensorFlow Lite with Flex delegate
-        # Locate the Flex delegate library
         import tensorflow as tf
+        # Locate the Flex delegate library
         lib_path = tf.sysconfig.get_lib()
         delegate_paths = [
             os.path.join(lib_path, 'libtensorflowlite_flex.so'),
