@@ -5,4 +5,5 @@ uvicorn[standard]==0.24.0
 python-multipart==0.0.6
 Pillow==10.1.0
 huggingface-hub==0.20.3
-numpy   # <-- remove the version pin
+ai-edge-litert
+numpy
