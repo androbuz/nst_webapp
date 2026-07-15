@@ -3,31 +3,8 @@ import numpy as np
 from PIL import Image
 from transformers import CLIPProcessor
 from app.config import settings
-
-# ---------------------------------------------------------------------
-# Load the Flex delegate from tflite-support
-# ---------------------------------------------------------------------
-try:
-    from tflite_support import flex_delegate
-    FLEX_DELEGATE = flex_delegate.FlexDelegate()
-    USE_FLEX_DELEGATE = True
-    print("Loaded FlexDelegate from tflite-support.")
-except ImportError as e:
-    USE_FLEX_DELEGATE = False
-    print(f"tflite-support not available: {e}. Falling back to standard TensorFlow Lite.")
-
-# ---------------------------------------------------------------------
-# Optional: try to use ai_edge_litert (LiteRT) as a backup
-# ---------------------------------------------------------------------
-try:
-    from ai_edge_litert.interpreter import Interpreter as LiteRTInterpreter
-    USE_LITERT = True
-    print("ai_edge_litert is available.")
-except ImportError:
-    USE_LITERT = False
-    print("ai_edge_litert not available; using TensorFlow Lite.")
-
 import tensorflow as tf
+from tflite_support import flex_delegate
 
 # Global interpreters
 _interp_image = None
@@ -36,27 +13,14 @@ _interp_clip = None
 _processor = None
 
 def _load_interpreter(model_path: str):
-    """Load interpreter with Flex delegate support."""
-    if USE_FLEX_DELEGATE:
-        # Use the flex delegate from tflite-support
-        interpreter = tf.lite.Interpreter(
-            model_path=model_path,
-            experimental_delegates=[FLEX_DELEGATE]
-        )
-        print(f"Loaded interpreter with FlexDelegate for {model_path}")
-        return interpreter
-    elif USE_LITERT:
-        # Try LiteRT (ai_edge_litert) with FlexDelegate if available
-        try:
-            from ai_edge_litert.delegates import FlexDelegate as LiteRTFlexDelegate
-            flex_del = LiteRTFlexDelegate()
-            interpreter = LiteRTInterpreter(model_path=model_path, delegates=[flex_del])
-            print(f"Loaded LiteRT interpreter with FlexDelegate for {model_path}")
-            return interpreter
-        except Exception as e:
-            print(f"Failed to load LiteRT with FlexDelegate: {e}. Falling back to standard.")
-    # Fallback: standard TensorFlow Lite (may fail for Flex ops)
-    return tf.lite.Interpreter(model_path=model_path)
+    """Load TFLite interpreter with Flex delegate."""
+    flex_del = flex_delegate.FlexDelegate()
+    interpreter = tf.lite.Interpreter(
+        model_path=model_path,
+        experimental_delegates=[flex_del]
+    )
+    print(f"Loaded interpreter with FlexDelegate for {model_path}")
+    return interpreter
 
 def load_models():
     global _interp_image, _interp_text, _interp_clip
@@ -71,7 +35,6 @@ def load_models():
         _interp_clip.allocate_tensors()
 
 def _run_tflite(interpreter, input_data: list) -> np.ndarray:
-    """Set inputs, run inference, return output."""
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
 
