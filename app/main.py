@@ -1,3 +1,10 @@
+import sys
+import os
+# Ensure the root directory is in sys.path so 'custom_classes' and 'app' are discoverable
+root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if root_path not in sys.path:
+    sys.path.insert(0, root_path)
+
 from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.responses import StreamingResponse
 from io import BytesIO
