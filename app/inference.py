@@ -11,8 +11,8 @@ if _root not in sys.path:
     sys.path.insert(0, _root)
 
 from app.config import settings
-from custom_classes.models import StyleTransferModel
-from custom_classes.layers import PatchEmbedding, TransformerEncoder, ContentAwarePositionalEncoding, RefinementDecoder
+from custom_classes.models import StyleTransferModel, RefinementDecoder
+from custom_classes.layers import PatchEmbedding, TransformerEncoder, ContentAwarePositionalEncoding
 
 # Global model and processor instances
 _model = None
