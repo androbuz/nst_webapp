@@ -4,7 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Neural Style Transfer Demo</title>
-    <link rel="stylesheet" href="style.css" />
+    <!-- Fixed paths to use the /static prefix -->
+    <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
     <h1>Neural Style Transfer</h1>
@@ -17,11 +18,11 @@
             <form id="imageForm" enctype="multipart/form-data">
                 <div>
                     <label for="contentImageImg">Content Image:</label>
-                    <input type="file" id="contentImageImg" name="content_image" accept="image/*" required />
+                    <input type="file" id="contentImageImg" name="content_file" accept="image/*" required />
                 </div>
                 <div>
                     <label for="styleImageImg">Style Image:</label>
-                    <input type="file" id="styleImageImg" name="style_image" accept="image/*" required />
+                    <input type="file" id="styleImageImg" name="style_file" accept="image/*" required />
                 </div>
                 <button type="submit">Generate (Image)</button>
             </form>
@@ -33,11 +34,11 @@
             <form id="textForm" enctype="multipart/form-data">
                 <div>
                     <label for="contentImageText">Content Image:</label>
-                    <input type="file" id="contentImageText" name="content_image" accept="image/*" required />
+                    <input type="file" id="contentImageText" name="content_file" accept="image/*" required />
                 </div>
                 <div>
                     <label for="stylePrompt">Style Description:</label>
-                    <input type="text" id="stylePrompt" name="style_prompt" placeholder="e.g., 'Van Gogh Starry Night'" required />
+                    <input type="text" id="stylePrompt" name="prompt" placeholder="e.g., 'Van Gogh Starry Night'" required />
                 </div>
                 <button type="submit">Generate (Text)</button>
             </form>
@@ -55,6 +56,7 @@
     <!-- Shared loading indicator -->
     <div id="loading" style="display: none;">Processing…</div>
 
-    <script src="script.js"></script>
+    <!-- Fixed path to use the /static prefix -->
+    <script src="/static/script.js"></script>
 </body>
 </html>
