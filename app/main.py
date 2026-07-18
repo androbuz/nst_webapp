@@ -1,9 +1,13 @@
 import sys
 import os
-# Ensure the root directory is in sys.path so 'custom_classes' and 'app' are discoverable
-root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-if root_path not in sys.path:
-    sys.path.insert(0, root_path)
+# Get the absolute path of the directory containing main.py (nst_webapp/app)
+# Then get the parent (nst_webapp/)
+_current_dir = os.path.dirname(os.path.abspath(__file__))
+_root_path = os.path.abspath(os.path.join(_current_dir, '..'))
+
+if _root_path not in sys.path:
+    sys.path.insert(0, _root_path)
+import os
 
 from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.responses import StreamingResponse
