@@ -17,7 +17,7 @@ app.mount("/static", StaticFiles(directory=static_path), name="static")
 async def read_index():
     return FileResponse(os.path.join(static_path, 'index.html'))
 
-@app.post("/stylize/image")
+@app.post("/style-transfer-image")
 async def stylize_image(content_file: UploadFile = File(...), style_file: UploadFile = File(...)):
     content_pil = Image.open(BytesIO(await content_file.read()))
     style_pil = Image.open(BytesIO(await style_file.read()))
@@ -29,7 +29,7 @@ async def stylize_image(content_file: UploadFile = File(...), style_file: Upload
     img_io.seek(0)
     return StreamingResponse(img_io, media_type="image/jpeg")
 
-@app.post("/stylize/text")
+@app.post("/style-transfer-text")
 async def stylize_text(content_file: UploadFile = File(...), prompt: str = Form(...)):
     content_pil = Image.open(BytesIO(await content_file.read()))
 
