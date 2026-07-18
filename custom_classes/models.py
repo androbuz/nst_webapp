@@ -2,7 +2,7 @@ import tensorflow as tf
 import keras
 from keras import layers as klayers
 
-from layers import DecoderBlock
+from custom_classes.layers import DecoderBlock
 
 @keras.utils.register_keras_serializable()
 class RefinementDecoder(keras.Model):
