@@ -55,14 +55,11 @@ def load_models():
             num_patches=1024
         )
 
-        # --- CRITICAL FIX: Build BOTH pathways (Image and Text) before loading weights ---
+        # Build both pathways
         dummy_content = tf.zeros((1, target_size, target_size, 3))
         dummy_style_img = tf.zeros((1, target_size, target_size, 3))
         dummy_text_emb = tf.zeros((1, 512))
-
-        # 1. Build Image-guided pathway
         _ = _model(content_img=dummy_content, style_img=dummy_style_img, training=False)
-        # 2. Build Text-guided pathway (initializes the text projection weights)
         _ = _model(content_img=dummy_content, style_text_embedding=dummy_text_emb, training=False)
 
         if os.path.exists(settings.MODEL_WEIGHTS_PATH):
@@ -76,7 +73,6 @@ def load_models():
         clip = CLIP.from_preset("clip-vit-base-patch32")
         _clip_text_encoder = clip.text_encoder
 
-        # Build text encoder before weights
         dummy_ids = tf.zeros((1, 77), dtype=tf.int32)
         dummy_mask = tf.zeros((1, 77), dtype=tf.int32)
         _ = _clip_text_encoder(dummy_ids, attention_mask=dummy_mask)
@@ -90,8 +86,12 @@ def _preprocess_image(pil_image):
     return np.expand_dims(arr, axis=0)
 
 def _get_text_embedding(prompt):
-    inputs = _processor(text=prompt, return_tensors="tf", padding="max_length", truncation=True, max_length=77)
-    text_features = _clip_text_encoder(inputs.input_ids, attention_mask=inputs.attention_mask)
+    # Fix: Return as numpy and convert to TF to avoid TensorType error
+    inputs = _processor(text=prompt, return_tensors="np", padding="max_length", truncation=True, max_length=77)
+    input_ids = tf.convert_to_tensor(inputs.input_ids)
+    attention_mask = tf.convert_to_tensor(inputs.attention_mask)
+    
+    text_features = _clip_text_encoder(input_ids, attention_mask=attention_mask)
     embedding = tf.linalg.normalize(text_features)[0]
     return embedding
 
