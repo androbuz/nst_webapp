@@ -1,73 +1,38 @@
-import io
-import logging
-from fastapi import FastAPI, File, Form, UploadFile, HTTPException
-from fastapi.responses import Response, FileResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, File, UploadFile, Form
+from fastapi.responses import StreamingResponse
+from io import BytesIO
 from PIL import Image
+from app.inference import run_style_transfer_image, run_style_transfer_text
 import uvicorn
 
-from app.inference import load_models, run_style_transfer_image, run_style_transfer_text
-from app.config import settings
+app = FastAPI(title="Hybrid Neural Style Transfer API")
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+@app.post("/stylize/image")
+async def stylize_image(content_file: UploadFile = File(...), style_file: UploadFile = File(...)):
+    content_pil = Image.open(BytesIO(await content_file.read()))
+    style_pil = Image.open(BytesIO(await style_file.read()))
+    
+    result_img = run_style_transfer_image(content_pil, style_pil)
+    
+    img_io = BytesIO()
+    result_img.save(img_io, 'JPEG')
+    img_io.seek(0)
+    return StreamingResponse(img_io, media_type="image/jpeg")
 
-app = FastAPI(title="Hybrid NST API", version="1.0.0")
+@app.post("/stylize/text")
+async def stylize_text(content_file: UploadFile = File(...), prompt: str = Form(...)):
+    content_pil = Image.open(BytesIO(await content_file.read()))
+    
+    result_img = run_style_transfer_text(content_pil, prompt)
+    
+    img_io = BytesIO()
+    result_img.save(img_io, 'JPEG')
+    img_io.seek(0)
+    return StreamingResponse(img_io, media_type="image/jpeg")
 
-@app.on_event("startup")
-async def startup():
-    logger.info("Loading TFLite models...")
-    load_models()
-    logger.info("Models loaded.")
-
-# Serve frontend static files
-app.mount("/", StaticFiles(directory="app/static", html=True), name="static")
-
-# Health check
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
-
-# Image‑guided endpoint
-@app.post("/style-transfer-image")
-async def style_transfer_image(
-    content_image: UploadFile = File(...),
-    style_image: UploadFile = File(...),
-):
-    if not content_image.content_type.startswith("image/") or not style_image.content_type.startswith("image/"):
-        raise HTTPException(400, "Both files must be images.")
-
-    try:
-        content_pil = Image.open(io.BytesIO(await content_image.read()))
-        style_pil   = Image.open(io.BytesIO(await style_image.read()))
-        result = run_style_transfer_image(content_pil, style_pil)
-
-        buf = io.BytesIO()
-        result.save(buf, format="JPEG", quality=90)
-        return Response(content=buf.getvalue(), media_type="image/jpeg")
-    except Exception as e:
-        logger.error(f"Image‑guided inference error: {e}")
-        raise HTTPException(500, f"Inference failed: {str(e)}")
-
-# Text‑guided endpoint 
-@app.post("/style-transfer-text")
-async def style_transfer_text(
-    content_image: UploadFile = File(...),
-    style_prompt: str = Form(...),
-):
-    if not content_image.content_type.startswith("image/"):
-        raise HTTPException(400, "Content file must be an image.")
-
-    try:
-        content_pil = Image.open(io.BytesIO(await content_image.read()))
-        result = run_style_transfer_text(content_pil, style_prompt)
-
-        buf = io.BytesIO()
-        result.save(buf, format="JPEG", quality=90)
-        return Response(content=buf.getvalue(), media_type="image/jpeg")
-    except Exception as e:
-        logger.error(f"Text‑guided inference error: {e}")
-        raise HTTPException(500, f"Inference failed: {str(e)}")
+@app.get("/")
+async def health_check():
+    return {"status": "ready", "engine": "tensorflow_weights"}
 
 if __name__ == "__main__":
-    uvicorn.run("app.main:app", host="0.0.0.0", port=7860)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

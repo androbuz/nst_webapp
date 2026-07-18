@@ -1,85 +1,90 @@
 import os
 import numpy as np
+import tensorflow as tf
 from PIL import Image
 from transformers import CLIPProcessor
 from app.config import settings
-import tensorflow as tf
-from tflite_support import flex_delegate
+from custom_classes.models import StyleTransferModel
+from custom_classes.layers import PatchEmbedding, TransformerEncoder, ContentAwarePositionalEncoding, RefinementDecoder
 
-# Global interpreters
-_interp_image = None
-_interp_text = None
-_interp_clip = None
+# Global model and processor instances
+_model = None
+_clip_text_encoder = None
 _processor = None
 
-def _load_interpreter(model_path: str):
-    """Load TFLite interpreter with Flex delegate."""
-    flex_del = flex_delegate.FlexDelegate()
-    interpreter = tf.lite.Interpreter(
-        model_path=model_path,
-        experimental_delegates=[flex_del]
-    )
-    print(f"Loaded interpreter with FlexDelegate for {model_path}")
-    return interpreter
+def load_fp16_weights(model, weights_path):
+    """Helper to load weights from .npz FP16 files."""
+    data = np.load(weights_path)
+    weights = [data[f'arr_{i}'].astype(np.float32) for i in range(len(data.files))]
+    model.set_weights(weights)
+    print(f"Loaded weights from {weights_path}")
 
 def load_models():
-    global _interp_image, _interp_text, _interp_clip
-    if _interp_image is None:
-        _interp_image = _load_interpreter(settings.IMAGE_GUIDED_MODEL)
-        _interp_image.allocate_tensors()
-    if _interp_text is None:
-        _interp_text = _load_interpreter(settings.TEXT_GUIDED_MODEL)
-        _interp_text.allocate_tensors()
-    if _interp_clip is None:
-        _interp_clip = _load_interpreter(settings.CLIP_ENCODER_MODEL)
-        _interp_clip.allocate_tensors()
+    global _model, _clip_text_encoder, _processor
+    
+    if _processor is None:
+        _processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
-def _run_tflite(interpreter, input_data: list) -> np.ndarray:
-    input_details = interpreter.get_input_details()
-    output_details = interpreter.get_output_details()
+    if _model is None:
+        projection_dim = 256
+        target_size = 256
+        
+        c_embedder = PatchEmbedding(patch_size=8, projection_dim=projection_dim)
+        s_embedder = PatchEmbedding(patch_size=8, projection_dim=projection_dim)
+        c_encoder = tf.keras.Sequential([TransformerEncoder(projection_dim, 8, projection_dim*4) for _ in range(2)])
+        s_encoder = tf.keras.Sequential([TransformerEncoder(projection_dim, 8, projection_dim*4) for _ in range(2)])
+        cape = ContentAwarePositionalEncoding(target_spatial_size=18, projection_dim=projection_dim)
+        decoder = RefinementDecoder(projection_dim=projection_dim, output_image_size=target_size)
 
-    for i, detail in enumerate(input_details):
-        expected_dtype = detail['dtype']
-        input_data[i] = input_data[i].astype(expected_dtype)
-        interpreter.set_tensor(detail['index'], input_data[i])
+        _model = StyleTransferModel(
+            content_patch_embedder=c_embedder,
+            style_patch_embedder=s_embedder,
+            content_encoder=c_encoder,
+            style_encoder=s_encoder,
+            cape_layer=cape,
+            refinement_decoder=decoder,
+            projection_dim=projection_dim,
+            style_text_embedding_dim=512,
+            num_patches=1024
+        )
+        
+        if os.path.exists(settings.MODEL_WEIGHTS_PATH):
+            if settings.MODEL_WEIGHTS_PATH.endswith('.npz'):
+                load_fp16_weights(_model, settings.MODEL_WEIGHTS_PATH)
+            else:
+                _model.load_weights(settings.MODEL_WEIGHTS_PATH)
 
-    interpreter.invoke()
-    return interpreter.get_tensor(output_details[0]['index'])
+    if _clip_text_encoder is None:
+        # Importing here to minimize startup time if not using text
+        from keras_cv.models import CLIP
+        clip = CLIP.from_preset("clip-vit-base-patch32")
+        _clip_text_encoder = clip.text_encoder
+        if os.path.exists(settings.CLIP_WEIGHTS_PATH):
+             load_fp16_weights(_clip_text_encoder, settings.CLIP_WEIGHTS_PATH)
 
-def _preprocess_image(pil_image: Image.Image) -> np.ndarray:
-    img = pil_image.convert("RGB").resize((settings.TARGET_SIZE, settings.TARGET_SIZE))
+def _preprocess_image(pil_image):
+    img = pil_image.convert("RGB").resize((256, 256))
     arr = np.array(img, dtype=np.float32) / 255.0
     return np.expand_dims(arr, axis=0)
 
-def _get_text_embedding(prompt: str) -> np.ndarray:
-    global _processor
-    if _processor is None:
-        _processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-    inputs = _processor(
-        text=prompt,
-        return_tensors="np",
-        padding="max_length",
-        truncation=True,
-        max_length=settings.CLIP_MAX_LENGTH,
-    )
-    input_ids = inputs["input_ids"].astype(np.int32)
-    attention_mask = inputs["attention_mask"].astype(np.int32)
-    output = _run_tflite(_interp_clip, [input_ids, attention_mask])
-    embedding = output / np.linalg.norm(output, axis=-1, keepdims=True)
+def _get_text_embedding(prompt):
+    inputs = _processor(text=prompt, return_tensors="tf", padding="max_length", truncation=True, max_length=77)
+    text_features = _clip_text_encoder(inputs.input_ids, attention_mask=inputs.attention_mask)
+    embedding = tf.linalg.normalize(text_features)[0]
     return embedding
 
-def run_style_transfer_image(content_pil: Image.Image, style_pil: Image.Image) -> Image.Image:
+def run_style_transfer_image(content_pil, style_pil):
     load_models()
     content = _preprocess_image(content_pil)
     style = _preprocess_image(style_pil)
-    output = _run_tflite(_interp_image, [content, style])
-    output = np.clip(output[0], 0.0, 1.0) * 255.0
+    output = _model(content_img=content, style_img=style, training=False)
+    output = np.clip(output[0].numpy(), 0.0, 1.0) * 255.0
     return Image.fromarray(output.astype(np.uint8))
 
-def run_style_transfer_text(content_pil: Image.Image, style_prompt: str) -> Image.Image:
+def run_style_transfer_text(content_pil, style_prompt):
     load_models()
     content = _preprocess_image(content_pil)
     text_emb = _get_text_embedding(style_prompt)
-    output = _run_tflite(_interp_text, [content, text_emb])
-    output = np.clip(output[0], 0.0, 1.0) * 255.0
+    output = _model(content_img=content, style_text_embedding=text_emb, training=False)
+    output = np.clip(output[0].numpy(), 0.0, 1.0) * 255.0
     return Image.fromarray(output.astype(np.uint8))

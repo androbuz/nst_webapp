@@ -1,14 +1,12 @@
 import os
+from pydantic_settings import BaseSettings
 
-class Settings:
-    # TFLite model paths
-    MODEL_DIR = os.getenv("MODEL_DIR", "./models")
-    IMAGE_GUIDED_MODEL = os.path.join(MODEL_DIR, "hybrid_style_transfer_model_image_guided_quantized.tflite")
-    TEXT_GUIDED_MODEL  = os.path.join(MODEL_DIR, "hybrid_style_transfer_model_text_guided_quantized.tflite")
-    CLIP_ENCODER_MODEL = os.path.join(MODEL_DIR, "clip_text_encoder_quantized.tflite")
-
-    # Image pre‑processing
-    TARGET_SIZE = 256
-    CLIP_MAX_LENGTH = 77
+class Settings(BaseSettings):
+    # Updated paths for FP16 weights
+    MODEL_WEIGHTS_PATH: str = os.getenv("MODEL_WEIGHTS_PATH", "models/hybrid_style_weights_fp16.npz")
+    CLIP_WEIGHTS_PATH: str = os.getenv("CLIP_WEIGHTS_PATH", "models/clip_text_weights_fp16.npz")
+    
+    # Web app settings
+    DEBUG: bool = os.getenv("DEBUG", "False") == "True"
 
 settings = Settings()
