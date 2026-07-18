@@ -1,12 +1,15 @@
+import os
 import sys
-import os
-_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-if _root not in sys.path: sys.path.insert(0, _root)
-import os
 import numpy as np
 import tensorflow as tf
 from PIL import Image
 from transformers import CLIPProcessor
+
+# Force parent directory into path so custom_classes is found
+_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if _root not in sys.path:
+    sys.path.insert(0, _root)
+
 from app.config import settings
 from custom_classes.models import StyleTransferModel
 from custom_classes.layers import PatchEmbedding, TransformerEncoder, ContentAwarePositionalEncoding, RefinementDecoder
@@ -25,14 +28,14 @@ def load_fp16_weights(model, weights_path):
 
 def load_models():
     global _model, _clip_text_encoder, _processor
-    
+
     if _processor is None:
         _processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
     if _model is None:
         projection_dim = 256
         target_size = 256
-        
+
         c_embedder = PatchEmbedding(patch_size=8, projection_dim=projection_dim)
         s_embedder = PatchEmbedding(patch_size=8, projection_dim=projection_dim)
         c_encoder = tf.keras.Sequential([TransformerEncoder(projection_dim, 8, projection_dim*4) for _ in range(2)])
@@ -51,7 +54,7 @@ def load_models():
             style_text_embedding_dim=512,
             num_patches=1024
         )
-        
+
         if os.path.exists(settings.MODEL_WEIGHTS_PATH):
             if settings.MODEL_WEIGHTS_PATH.endswith('.npz'):
                 load_fp16_weights(_model, settings.MODEL_WEIGHTS_PATH)
@@ -59,7 +62,6 @@ def load_models():
                 _model.load_weights(settings.MODEL_WEIGHTS_PATH)
 
     if _clip_text_encoder is None:
-        # Importing here to minimize startup time if not using text
         from keras_cv.models import CLIP
         clip = CLIP.from_preset("clip-vit-base-patch32")
         _clip_text_encoder = clip.text_encoder
