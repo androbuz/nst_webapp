@@ -33,6 +33,7 @@ class TransformerEncoder(layers.Layer):
     def call(self, inputs, training=False):
         norm1 = self.layernorm1(inputs)
         # computing self-attention after normalization
+        # self attention with Q,V,K using the same tensor
         attn_output = self.att(query=norm1, value=norm1, key=norm1)
         attn_output = self.dropout1(attn_output, training=training)
         # residual connection that adds original signal back to attention output
