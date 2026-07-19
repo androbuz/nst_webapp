@@ -9,12 +9,15 @@ from keras import layers
 class TransformerEncoder(layers.Layer):
     def __init__(self, embed_dim, num_heads, ffn_units, dropout_rate=0.1, **kwargs):
         super().__init__(**kwargs)
-        self.embed_dim = embed_dim
-        self.num_heads = num_heads
-        self.ffn_units = ffn_units
+        self.embed_dim = embed_dim # head dimension
+        self.num_heads = num_heads # attention heads
+        self.ffn_units = ffn_units # units
         self.dropout_rate = dropout_rate
 
+        # normalizing input before attention (zero mean and unit variance)
         self.layernorm1 = layers.LayerNormalization(epsilon=1e-6)
+        # Multi-Head Attention
+        # splits the dimensional embedding into heads
         self.att = layers.MultiHeadAttention(num_heads=num_heads, key_dim=embed_dim // num_heads)
         self.dropout1 = layers.Dropout(dropout_rate)
 
@@ -29,14 +32,18 @@ class TransformerEncoder(layers.Layer):
 
     def call(self, inputs, training=False):
         norm1 = self.layernorm1(inputs)
+        # computing self-attention after normalization
         attn_output = self.att(query=norm1, value=norm1, key=norm1)
         attn_output = self.dropout1(attn_output, training=training)
+        # residual connection that adds original signal back to attention output
+        # if the attention finds nothing useful, model can simply pass original signal through
         out1 = inputs + attn_output
 
-        norm2 = self.layernorm2(out1)
+        # Feed-Forward Network (FFN)
+        norm2 = self.layernorm2(out1) # normalization again before ffn
         ffn_output = self.ffn_layers(norm2)
         ffn_output = self.dropout2(ffn_output, training=training)
-        return out1 + ffn_output
+        return out1 + ffn_output # second residual connection
 
     def get_config(self):
         config = super().get_config()
