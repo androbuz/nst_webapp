@@ -61,22 +61,29 @@ class TransformerEncoder(layers.Layer):
 class PatchEmbedding(layers.Layer):
     def __init__(self, patch_size, projection_dim, **kwargs):
         super().__init__(**kwargs)
+        # storing the patch size and the dimension of the embedding
         self.patch_size = patch_size
         self.projection_dim = projection_dim
-        # Reshape layer to flatten the patches from (h, w, c*p*p) to (-1, c*p*p)
-        # Assuming 3 channels for images
+        # flattening the patches from (h, w, c*p*p) to (-1, c*p*p) 
+        # -1 means automatic finding of the number of patches
         self.flatten_patches = layers.Reshape((-1, (patch_size * patch_size * 3)))
+        # for projecting the flattened patches' numbers into projection_dim numbers
         self.projection = layers.Dense(projection_dim)
 
     def call(self, images):
         # Extract patches using tf.image.extract_patches
         patches = tf.image.extract_patches(
             images=images,
+            # Window size is [batch, height = patch_size, width = patch_size, channels]
             sizes=[1, self.patch_size, self.patch_size, 1],
+            # stride equals the patch size so that patches do not overlap
+            # moving one patch each time
             strides=[1, self.patch_size, self.patch_size, 1],
             rates=[1, 1, 1, 1],
+            # should ignore incomplete patches at image borders
             padding='VALID',
         )
+        # flattening and projecting the patches
         patches = self.flatten_patches(patches)
         projected_patches = self.projection(patches)
         return projected_patches
