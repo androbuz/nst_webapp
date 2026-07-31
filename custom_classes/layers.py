@@ -85,6 +85,7 @@ class PatchEmbedding(layers.Layer):
         )
         # flattening and projecting the patches
         patches = self.flatten_patches(patches)
+        # connecting the projection Dense layer to the patches as input
         projected_patches = self.projection(patches)
         return projected_patches
 
