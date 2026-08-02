@@ -170,6 +170,7 @@ class ContentAwarePositionalEncoding(layers.Layer):
 
     def call(self, image_features, output_sequence_length):
         batch_size = tf.shape(image_features)[0] # extracting the batch
+        # resizing to ensure the model analyzes spatial context at a consistent scale
         pooled_features = tf.image.resize(
             image_features,
             size=(self.target_spatial_size, self.target_spatial_size),
