@@ -102,51 +102,57 @@ class DecoderBlock(keras.layers.Layer):
         super().__init__(**kwargs)
         self.filters = filters
 
-        # Main convolutional path for the residual block
-        # Using SeparableConv2D as per "Xception-like" principles
+        # The main convolutional path for the residual block
+        # the number of filters is set from initialization
+        # each output pixel looks at a 3x3 neighborhood with added padding to get same output
         self.res_conv1 = layers.SeparableConv2D(filters, kernel_size=3, padding='same', use_bias=False)
+        # using batch normalization to stop varying values and ensure stable training
         self.res_bn1 = layers.BatchNormalization()
-        self.res_act1 = layers.Activation('relu') # ReLU is a common choice for decoder activations
+        # applying to add non linearlity
+        self.res_act1 = layers.Activation('relu')
 
+        # the second feature extraction
         self.res_conv2 = layers.SeparableConv2D(filters, kernel_size=3, padding='same', use_bias=False)
-        self.res_bn2 = layers.BatchNormalization()
+        # stabilizing output before residual addition
+        self.res_bn2 = layers.BatchNormalization() 
 
-        # Shortcut path for residual connection, initialized in build if channel matching is needed
+        # shortcut path for residual connection, set to None if channel matching is needed
         self.shortcut_conv = None
 
-        # Upsampling operation, as specified to be part of each stage
+        # the Upsampling operation to double the image size
+        # bilinear interpolation estimates smooth values, instead of copying pixels
         self.upsample_layer = layers.UpSampling2D(size=2, interpolation='bilinear')
 
     def build(self, input_shape):
-        # Create a 1x1 convolution for the shortcut if input channels don't match the block's output filters
+        # creating a 1x1 convolution for the shortcut if input channels don't match the block's output filters
         if input_shape[-1] != self.filters:
             self.shortcut_conv = keras.Sequential([
+                # the 1x1 conv changes only the channel 
                 layers.Conv2D(self.filters, kernel_size=1, padding='same', use_bias=False),
                 layers.BatchNormalization()
             ], name='shortcut_conv_for_channel_matching')
         super().build(input_shape)
 
     def call(self, inputs):
-        # Store inputs for the residual connection
+        # saving the residual
         residual = inputs
 
-        # Main convolutional path
+        # Connecting the first convolution, then normalization and relu
         x = self.res_conv1(inputs)
         x = self.res_bn1(x)
         x = self.res_act1(x)
-
+        # Connecting the second convolution
         x = self.res_conv2(x)
         x = self.res_bn2(x)
-
-        # Apply shortcut transformation if necessary
+        # applying shortcut transformation if needed
         if self.shortcut_conv is not None:
+            # residual shape should match the main branch
             residual = self.shortcut_conv(residual)
 
-        # Add residual and main paths, then activate
+        # adding the residual for residual learning, then applying relu
         x = layers.add([x, residual])
-        x = layers.Activation('relu')(x) # Final activation after residual addition
-
-        # Perform upsampling as the last step of the stage
+        x = layers.Activation('relu')(x)
+        # performing upsampling
         x = self.upsample_layer(x)
         return x
 
