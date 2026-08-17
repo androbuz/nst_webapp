@@ -22,6 +22,11 @@ jobs:
           git lfs install
           git lfs pull
 
+      - name: Remove notebook from deployment
+        run: |
+          git rm --cached --ignore-unmatch hybridnst.ipynb
+          rm -f hybridnst.ipynb
+
       - name: Push to Hugging Face Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
