@@ -99,7 +99,9 @@ def run_style_transfer_image(content_pil, style_pil):
     load_models()
     content = _preprocess_image(content_pil)
     style = _preprocess_image(style_pil)
-    output = _model(content_img=content, style_img=style, training=False)
+    # passing a dummy text input with shape=(size, clip embedding dimension)
+    dummy_text_inf = tf.zeros([tf.shape(content)[0], 512])
+    output = _model([content, style, dummy_text_inf], training=False)
     output = np.clip(output[0].numpy(), 0.0, 1.0) * 255.0
     return Image.fromarray(output.astype(np.uint8))
 
