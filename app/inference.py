@@ -40,7 +40,7 @@ def load_models():
         s_embedder = PatchEmbedding(patch_size=8, projection_dim=projection_dim)
         c_encoder = tf.keras.Sequential([TransformerEncoder(projection_dim, 8, projection_dim*4) for _ in range(2)])
         s_encoder = tf.keras.Sequential([TransformerEncoder(projection_dim, 8, projection_dim*4) for _ in range(2)])
-        cape = ContentAwarePositionalEncoding(target_spatial_size=18, projection_dim=projection_dim)
+        cape = ContentAwarePositionalEncoding(projection_dim=projection_dim)
         decoder = RefinementDecoder(projection_dim=projection_dim, output_image_size=target_size)
 
         _model = StyleTransferModel(
