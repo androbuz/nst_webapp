@@ -20,8 +20,13 @@ COPY . .
 ARG DVC_ACCESS_KEY_ID
 ARG DVC_SECRET_ACCESS_KEY
 
-RUN dvc remote modify storage access_key_id $DVC_ACCESS_KEY_ID && \
-    dvc remote modify storage secret_access_key $DVC_SECRET_ACCESS_KEY && \
+# RUN dvc remote modify storage access_key_id $DVC_ACCESS_KEY_ID && \
+#     dvc remote modify storage secret_access_key $DVC_SECRET_ACCESS_KEY && \
+#     dvc pull
+RUN dvc remote add -d storage s3://nst-dvc-models --force && \
+    dvc remote modify storage endpointurl https://s3.eu-central-003.backblazeb2.com && \
+    dvc remote modify storage access_key_id "$DVC_ACCESS_KEY_ID" && \
+    dvc remote modify storage secret_access_key "$DVC_SECRET_ACCESS_KEY" && \
     dvc pull
 
 # Expose the port HF Spaces expects
