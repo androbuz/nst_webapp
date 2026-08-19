@@ -59,8 +59,8 @@ def load_models():
         dummy_content = tf.zeros((1, target_size, target_size, 3))
         dummy_style_img = tf.zeros((1, target_size, target_size, 3))
         dummy_text_emb = tf.zeros((1, 512))
-        _ = _model(content_img=dummy_content, style_img=dummy_style_img, training=False)
-        _ = _model(content_img=dummy_content, style_text_embedding=dummy_text_emb, training=False)
+        # _ = _model(content_img=dummy_content, style_img=dummy_style_img, training=False)
+        _ = _model([dummy_content, dummy_style_img, dummy_text_emb], training=False)
 
         if os.path.exists(settings.MODEL_WEIGHTS_PATH):
             if settings.MODEL_WEIGHTS_PATH.endswith('.npz'):
@@ -107,6 +107,8 @@ def run_style_transfer_text(content_pil, style_prompt):
     load_models()
     content = _preprocess_image(content_pil)
     text_emb = _get_text_embedding(style_prompt)
-    output = _model(content_img=content, style_text_embedding=text_emb, training=False)
+    # using a dummy style image and passing inputs array to the model
+    dummy_style_inf = tf.zeros_like(content)
+    output = _model([content, dummy_style_inf, text_emb], training=False)
     output = np.clip(output[0].numpy(), 0.0, 1.0) * 255.0
     return Image.fromarray(output.astype(np.uint8))
