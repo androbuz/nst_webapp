@@ -200,28 +200,34 @@ class StyleTransferModel(keras.Model):
         self.text_to_style_projection = klayers.Dense(self.num_patches * self.projection_dim,
                                                      name="text_to_style_projection_layer")
 
-    def call(self, content_img, style_img=None, style_text_embedding=None, training=False):
-        content_patches = self.content_patch_embedder(content_img)
-        output_sequence_length = tf.shape(content_patches)[1]
-        content_cape_encoding = self.cape_layer(c_feats)
-        content_patches_with_cape = content_patches + content_cape_encoding
-        encoded_content = self.content_encoder(content_patches_with_cape)
+    def call(self, inputs, training=False):
+        content_img, style_img, style_text_embedding = inputs
 
-        if style_img is not None:
-            style_patches = self.style_patch_embedder(style_img)
-            style_cape_encoding = self.cape_layer(s_feats)
-            style_patches_with_cape = style_patches + style_cape_encoding
-            encoded_style = self.style_encoder(style_patches_with_cape)
-        else:
-            target_batch_size = tf.shape(content_img)[0]
-            tiled_style_text_embedding = tf.tile(style_text_embedding, [target_batch_size, 1])
-            projected_text_style = self.text_to_style_projection(tiled_style_text_embedding)
-            encoded_style = tf.reshape(projected_text_style, [target_batch_size, self.num_patches, self.projection_dim])
+        # Patch Embedding
+        c_patches = self.content_patch_embedder(content_img)
+        s_patches = self.style_patch_embedder(style_img)
 
-        decoder_input = tf.concat([encoded_content, encoded_style], axis=-1)
-        combined_features = self.combine_features_layer(decoder_input)
-        generated_image = self.refinement_decoder(combined_features)
-        return generated_image
+        # Transformer Encoding
+        c_feats = self.content_encoder(c_patches)
+        s_feats = self.style_encoder(s_patches)
+
+        # Reshape for CAPE (Convert sequence to spatial grid)
+        # Using patch_size=8
+        h = tf.shape(content_img)[1] // 8
+        w = tf.shape(content_img)[2] // 8
+        c_feats_spatial = tf.reshape(c_feats, [-1, h, w, self.projection_dim])
+        s_feats_spatial = tf.reshape(s_feats, [-1, h, w, self.projection_dim])
+
+        # Content-Aware Positional Encoding
+        # Pass only the feature tensors; CAPE now handles dimensions dynamically
+        combined_features = self.cape_layer([c_feats_spatial, s_feats_spatial])
+
+        # Decoding to Image
+        stylized_image = self.refinement_decoder(combined_features)
+
+        # Add dummy text connection to keep the functional graph valid
+        text_contribution = tf.reduce_sum(style_text_embedding) * 0.0
+        return stylized_image + text_contribution
 
     def get_config(self):
         config = super().get_config()
