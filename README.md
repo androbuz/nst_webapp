@@ -10,7 +10,7 @@ pinned: false
 
 # Hybrid Neural Style Transfer
 
-Upload a content image and either a style image or a text description to generate a stylized artwork.
+Get access to the web application on <a href="https://andro777-hybrid-nst-demo.hf.space/">Hugging Face</a>. Upload a content image and either a style image or a text description to generate a stylized artwork.
 
 ## How to use
 
