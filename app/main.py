@@ -40,9 +40,14 @@ async def stylize_text(content_file: UploadFile = File(...), prompt: str = Form(
     img_io.seek(0)
     return StreamingResponse(img_io, media_type="image/jpeg")
 
+# adding a health status check endpoint
 @app.get("/health")
 async def health_check():
     return {"status": "ready", "engine": "tensorflow_weights"}
+# using the head method used by the web app monitor
+@app.head("/health")
+async def health_check_head():
+    return {"status": "ready"}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
