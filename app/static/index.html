@@ -4,12 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Neural Style Transfer Demo</title>
-    <!-- Fixed paths to use the /static prefix -->
     <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
     <h1>Neural Style Transfer</h1>
-    <p>Choose your style source: upload an image <strong>or</strong> describe the style in words.</p>
+    <p>Choose your style source: upload an image, describe the style in words, or process a video sequence.</p>
 
     <div class="forms-container">
         <!-- Image‑guided form -->
@@ -43,20 +42,53 @@
                 <button type="submit">Generate (Text)</button>
             </form>
         </div>
+
+        <!-- Video-guided form -->
+        <div class="form-card">
+            <h2>Video Style</h2>
+            <form id="videoForm" enctype="multipart/form-data">
+                <div>
+                    <label for="contentVideo">Content Video:</label>
+                    <input type="file" id="contentVideo" name="video_file" accept="video/*" required />
+                </div>
+                <div>
+                    <label for="videoStyleImage">Style Image (Optional):</label>
+                    <input type="file" id="videoStyleImage" name="style_file" accept="image/*" />
+                </div>
+                <div>
+                    <label for="videoStylePrompt">Style Description (Optional):</label>
+                    <input type="text" id="videoStylePrompt" name="prompt" placeholder="e.g., 'Picasso Abstract Cubism'" />
+                </div>
+                <p style="font-size: 0.8rem; color: #555;">Provide a Style Image OR Description.</p>
+                <button type="submit">Generate (Video)</button>
+            </form>
+        </div>
     </div>
 
     <!-- Shared result display -->
     <div id="resultArea" style="display: none;">
-        <h3>Generated Image</h3>
-        <img id="resultImage" alt="Stylized result" />
+        <h3>Generated Result</h3>
+        
+        <!-- Image Output Container -->
+        <div id="imageResultContainer">
+            <img id="resultImage" alt="Stylized result" style="max-width: 100%;" />
+        </div>
+        
+        <!-- Video Output Container -->
+        <div id="videoResultContainer" style="display: none;">
+            <video id="resultVideo" controls style="max-width: 100%;">
+                <source id="resultVideoSource" src="" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+
         <br />
-        <a id="downloadLink" href="#" download="stylized.jpg">Download</a>
+        <a id="downloadLink" href="#" download="stylized_output">Download</a>
     </div>
 
     <!-- Shared loading indicator -->
-    <div id="loading" style="display: none;">Processing…</div>
+    <div id="loading" style="display: none;">Processing… (Videos may take a moment to process frame-by-frame)</div>
 
-    <!-- Fixed path to use the /static prefix -->
     <script src="/static/script.js"></script>
 </body>
 </html>
