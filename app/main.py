@@ -1,11 +1,14 @@
-from fastapi import FastAPI, File, UploadFile, Form
+from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from io import BytesIO
 from PIL import Image
-from app.inference import run_style_transfer_image, run_style_transfer_text
 import uvicorn
 import os
+import shutil
+import uuid
+
+from app.inference import run_style_transfer_image, run_style_transfer_text, run_style_transfer_video
 
 app = FastAPI(title="Hybrid Neural Style Transfer API")
 
@@ -17,9 +20,9 @@ app.mount("/static", StaticFiles(directory=static_path), name="static")
 @app.get("/")
 async def read_index():
     return FileResponse(os.path.join(static_path, 'index.html'))
-# similar head method that the app monitor can use 
+
 @app.head("/")
-async def read_index():
+async def read_index_head():
     return FileResponse(os.path.join(static_path, 'index.html'))
 
 # endpoint to send content image to be styled and its style image
@@ -47,11 +50,51 @@ async def stylize_text(content_file: UploadFile = File(...), prompt: str = Form(
     img_io.seek(0)
     return StreamingResponse(img_io, media_type="image/jpeg")
 
+# endpoint for video-based style transfer
+@app.post("/style-transfer-video")
+async def stylize_video(
+    background_tasks: BackgroundTasks,
+    video_file: UploadFile = File(...),
+    style_file: UploadFile = None,
+    prompt: str = Form(None)
+):
+    # Create paths for temp video files
+    temp_id = str(uuid.uuid4())
+    input_ext = os.path.splitext(video_file.filename)[1] or ".mp4"
+    input_path = f"/tmp/input_{temp_id}{input_ext}"
+    output_path = f"/tmp/output_{temp_id}.mp4"
+
+    # Save uploaded video file locally
+    with open(input_path, "wb") as buffer:
+        shutil.copyfileobj(video_file.file, buffer)
+
+    style_pil = None
+    if style_file:
+        style_pil = Image.open(BytesIO(await style_file.read()))
+
+    # Run inference to produce the output video
+    run_style_transfer_video(
+        input_video_path=input_path, 
+        output_video_path=output_path, 
+        style_pil=style_pil, 
+        style_prompt=prompt
+    )
+
+    # Clean up files in background after response is sent
+    def cleanup_temp_files():
+        if os.path.exists(input_path):
+            os.remove(input_path)
+        if os.path.exists(output_path):
+            os.remove(output_path)
+
+    background_tasks.add_task(cleanup_temp_files)
+    return FileResponse(output_path, media_type="video/mp4", filename=f"stylized_{video_file.filename}")
+
 # adding a health status check endpoint
 @app.get("/health")
 async def health_check():
     return {"status": "ready", "engine": "tensorflow_weights"}
-# using the head method used by the web app monitor
+
 @app.head("/health")
 async def health_check_head():
     return {"status": "ready"}
