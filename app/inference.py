@@ -144,21 +144,28 @@ def _get_text_embedding(prompt):
     embedding = tf.linalg.normalize(text_features)[0]
     return embedding
 
+# function to transfer style using a style image
 def run_style_transfer_image(content_pil, style_pil):
     model = load_models(is_video=False)
     content = _preprocess_image(content_pil)
     style = _preprocess_image(style_pil)
+    # converting the content and style images to tf.flot32 to match dummy text
+    content_tensor = tf.convert_to_tensor(content, dtype=tf.float32)
+    style_tensor = tf.convert_to_tensor(style, dtype=tf.float32)
     dummy_text_inf = tf.zeros([tf.shape(content)[0], 512])
-    output = model([content, style, dummy_text_inf], training=False)
+    # passing to the model all the inputs
+    output = model([content_tensor, style_tensor, dummy_text_inf], training=False)
     output = np.clip(output[0].numpy(), 0.0, 1.0) * 255.0
     return Image.fromarray(output.astype(np.uint8))
 
 def run_style_transfer_text(content_pil, style_prompt):
     model = load_models(is_video=False)
     content = _preprocess_image(content_pil)
+    # converting the content image to tf.flot32 to match dummy text
+    content_tensor = tf.convert_to_tensor(content, dtype=tf.float32)
     text_emb = _get_text_embedding(style_prompt)
     dummy_style_inf = tf.zeros_like(content)
-    output = model([content, dummy_style_inf, text_emb], training=False)
+    output = model([content_tensor, dummy_style_inf, text_emb], training=False)
     output = np.clip(output[0].numpy(), 0.0, 1.0) * 255.0
     return Image.fromarray(output.astype(np.uint8))
 
