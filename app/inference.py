@@ -132,9 +132,13 @@ def load_models(is_video=False):
         return _model_image
 
 def _preprocess_image(pil_image):
+    # convert to RGB and resize to match model inputs
     img = pil_image.convert("RGB").resize((256, 256))
+    # convert to numpy
     arr = np.array(img, dtype=np.float32) / 255.0
-    return np.expand_dims(arr, axis=0)
+    # adding a batch dimension and convert to native TensorFlow Tensor (float32)
+    tensor = tf.convert_to_tensor(np.expand_dims(arr, axis=0), dtype=tf.float32)
+    return tensor
 
 def _get_text_embedding(prompt):
     inputs = _processor(text=prompt, return_tensors="np", padding="max_length", truncation=True, max_length=77)
@@ -149,26 +153,32 @@ def run_style_transfer_image(content_pil, style_pil):
     model = load_models(is_video=False)
     content = _preprocess_image(content_pil)
     style = _preprocess_image(style_pil)
-    # converting the content and style images to tf.flot32 to match dummy text
-    content_tensor = tf.convert_to_tensor(content, dtype=tf.float32)
-    style_tensor = tf.convert_to_tensor(style, dtype=tf.float32)
-    dummy_text_inf = tf.zeros([tf.shape(content)[0], 512])
+    # ensuring the dummy text is of tf.flot32 to match other inputs
+    dummy_text_inf = tf.zeros([tf.shape(content)[0], 512], dtype=tf.float32)
     # passing to the model all the inputs
-    output = model([content_tensor, style_tensor, dummy_text_inf], training=False)
-    output = np.clip(output[0].numpy(), 0.0, 1.0) * 255.0
-    return Image.fromarray(output.astype(np.uint8))
+    output = model([content, style, dummy_text_inf], training=False)
+    # clipping the output image
+    output_clipped = tf.clip_by_value(output, clip_value_min=0.0, clip_value_max=1.0)
+    # converting the first batch element back to PIL image format
+    output_np = (output_clipped[0].numpy() * 255.0).astype(np.uint8)
+    return Image.fromarray(output_np)
 
-def run_style_transfer_text(content_pil, style_prompt):
+# function to transfer style using a style image
+def run_style_transfer_text(content_pil, style_pil):
     model = load_models(is_video=False)
     content = _preprocess_image(content_pil)
-    # converting the content image to tf.flot32 to match dummy text
-    content_tensor = tf.convert_to_tensor(content, dtype=tf.float32)
     text_emb = _get_text_embedding(style_prompt)
-    dummy_style_inf = tf.zeros_like(content)
-    output = model([content_tensor, dummy_style_inf, text_emb], training=False)
-    output = np.clip(output[0].numpy(), 0.0, 1.0) * 255.0
-    return Image.fromarray(output.astype(np.uint8))
-
+    # ensuring the dummy style image is of tf.flot32 to match other inputs
+    dummy_style_inf = tf.zeros_like(content, dtype=tf.float32)
+    # passing to the model all the inputs
+    output = model([content, dummy_style_inf, text_emb], training=False)
+    # clipping the output image
+    output_clipped = tf.clip_by_value(output, clip_value_min=0.0, clip_value_max=1.0)
+    # converting the first batch element back to PIL image format
+    output_np = (output_clipped[0].numpy() * 255.0).astype(np.uint8)
+    return Image.fromarray(output_np)
+    
+# function to transfer style when dealing with a video
 def run_style_transfer_video(input_video_path, output_video_path, style_pil=None, style_prompt=None):
     model = load_models(is_video=True)
     cap = cv2.VideoCapture(input_video_path)
