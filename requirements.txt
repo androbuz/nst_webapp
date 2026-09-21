@@ -10,3 +10,4 @@ pillow
 numpy
 pydantic-settings
 dvc[s3]
+opencv-python-headless
