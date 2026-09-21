@@ -202,12 +202,17 @@ def run_style_transfer_video(input_video_path, output_video_path, style_pil=None
         if prev_frame_tensor is None:
             prev_frame_tensor = curr_frame_tensor
             
-        # Stack current and previous frames
+        # stack current and previous frames
         video_input = tf.stack([curr_frame_tensor, prev_frame_tensor], axis=1)
+
+        # ensuring all inputs are tf tensors
+        video_input_tensor = tf.convert_to_tensor(video_input, dtype=tf.float32)
+        dummy_style_tensor = tf.convert_to_tensor(dummy_style, dtype=tf.float32)
+        text_emb_tensor = tf.convert_to_tensor(text_emb, dtype=tf.float32)
+        # passing the input tensors to the model
+        output = model([video_input_tensor, dummy_style_tensor, text_emb_tensor], training=False)
         
-        output = model([video_input, dummy_style, text_emb], training=False)
-        
-        # Retrieve frame_t (index 0)
+        # retrieve frame_t at index 0
         styled_frame_tensor = output[0, 0, ...]
         styled_frame_np = np.clip(styled_frame_tensor.numpy(), 0.0, 1.0) * 255.0
         styled_frame_np = cv2.resize(styled_frame_np, (width, height)).astype(np.uint8)
