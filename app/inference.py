@@ -1,3 +1,4 @@
+import keras
 import os
 import sys
 import cv2
@@ -29,8 +30,7 @@ def load_fp16_weights(model, weights_path):
     print(f"Loaded weights from {weights_path}")
 
 def build_hybrid_style_transfer_model(content_shape=(256, 256, 3), style_shape=(256, 256, 3), is_video=False):
-    import keras
-    
+    # defining the variables as set in the notebook
     projection_dim = 256
     patch_size = 8
     CLIP_EMBEDDING_DIM = 512
@@ -39,22 +39,23 @@ def build_hybrid_style_transfer_model(content_shape=(256, 256, 3), style_shape=(
     num_heads_content = 16
     num_heads_style = 4
     ffn_units = embed_dim * 4
-
+    # defining the inputs: content, style images
+    # for video, input shapes are (Batch, Time, H, W, C) where Time=2
     if is_video:
         c_img_in = keras.Input(shape=(2,) + content_shape, name="content_img_in")
         s_img_in = keras.Input(shape=style_shape, name="style_img_in")
     else:
         c_img_in = keras.Input(shape=content_shape, name="content_img_in")
         s_img_in = keras.Input(shape=style_shape, name="style_img_in")
-
+    # defining the style text
     t_emb_in = keras.Input(shape=(CLIP_EMBEDDING_DIM,), name="style_text_embedding_in")
-
+    # defining the content and style patch embedding layers
     content_patcher = PatchEmbedding(patch_size, projection_dim, name="content_patcher")
     style_patcher = PatchEmbedding(patch_size, projection_dim, name="style_patcher")
+    # instantiate the cape and refinement decoder
     cape_layer = ContentAwarePositionalEncoding(projection_dim=projection_dim, name="cape_layer")
     decoder = RefinementDecoder(projection_dim=projection_dim, output_image_size=content_shape[0], name="decoder")
     text_style_projection_layer = keras.layers.Dense(projection_dim, name="text_style_projection")
-
     # Inner encoders
     content_inputs = keras.Input(shape=(None, projection_dim), name="content_input")
     x_content = content_inputs
@@ -67,12 +68,19 @@ def build_hybrid_style_transfer_model(content_shape=(256, 256, 3), style_shape=(
     for i in range(num_encoder_blocks):
         x_style = TransformerEncoder(embed_dim, num_heads_style, ffn_units, name=f"style_encoder_block_{i}")(x_style)
     style_encoder = keras.Model(inputs=style_inputs, outputs=x_style, name="style_encoder")
-
+    
+    # function for processing a single content frame
     def process_frame(c_img, s_img_input, t_emb_input):
+        # Connecting the content layer with patch inputs
         c_feats = content_encoder(content_patcher(c_img))
-        is_text_guided = keras.ops.equal(keras.ops.sum(s_img_input, axis=[1, 2, 3]), 0.0)
+        # check if style image input is dummy or close to zero using a small threshold
+        # is_text_guided = keras.ops.equal(keras.ops.sum(s_img_input, axis=[1, 2, 3]), 0.0)
+        is_text_guided = keras.ops.less_equal(keras.ops.mean(keras.ops.absolute(s_img_input), axis=[1, 2, 3]), 1e-5)
+        # Connecting the style layer with patch inputs
         s_feats_from_image = style_encoder(style_patcher(s_img_input))
+        # extract number of tokens (sequence length) from content features shape
         spatial_tokens = keras.ops.shape(c_feats)[1]
+        # projecting the text embedding input to get (Batch, projection_dim)
         t_emb_projected = text_style_projection_layer(t_emb_input)
         t_feats_repeated = keras.layers.Reshape((1, projection_dim))(t_emb_projected)
         t_feats_from_text = keras.layers.Lambda(lambda x: keras.ops.tile(x, [1, spatial_tokens, 1]))(t_feats_repeated)
