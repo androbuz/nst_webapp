@@ -1,0 +1,7 @@
+[core]
+    remote = storage
+['remote "storage"']
+    url = s3://nst-dvc-models
+    endpointurl = https://s3.eu-central-003.backblazeb2.com
+    access_key_id = 0030087346c1a0c0000000001
+    secret_access_key = K003+wuXYYdQxCLxGkz3S1pa+waHKvM
