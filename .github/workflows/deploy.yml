@@ -38,26 +38,26 @@ jobs:
             --exclude ".github/*" \
             --exclude "hybridnst.ipynb"
      
-      # Building and pushing an image to Docker Hub
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      # # Building and pushing an image to Docker Hub
+      # - name: Log in to Docker Hub
+      #   uses: docker/login-action@v3
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      # - name: Set up Docker Buildx
+      #   uses: docker/setup-buildx-action@v3
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
-          # pass GitHub secrets to Docker
-          secrets: |
-            DVC_ACCESS_KEY_ID=${{ secrets.DVC_ACCESS_KEY_ID }}
-            DVC_SECRET_ACCESS_KEY=${{ secrets.DVC_SECRET_ACCESS_KEY }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      # - name: Build and push Docker image
+      #   uses: docker/build-push-action@v6
+      #   with:
+      #     context: .
+      #     push: true
+      #     tags: |
+      #       ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+      #     # pass GitHub secrets to Docker
+      #     secrets: |
+      #       DVC_ACCESS_KEY_ID=${{ secrets.DVC_ACCESS_KEY_ID }}
+      #       DVC_SECRET_ACCESS_KEY=${{ secrets.DVC_SECRET_ACCESS_KEY }}
+      #     cache-from: type=gha
+      #     cache-to: type=gha,mode=max
