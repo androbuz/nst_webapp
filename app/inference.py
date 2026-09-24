@@ -172,7 +172,7 @@ def run_style_transfer_image(content_pil, style_pil):
     return Image.fromarray(output_np)
 
 # function to transfer style using a style image
-def run_style_transfer_text(content_pil, style_pil):
+def run_style_transfer_text(content_pil, style_prompt):
     model = load_models(is_video=False)
     content = _preprocess_image(content_pil)
     text_emb = _get_text_embedding(style_prompt)
