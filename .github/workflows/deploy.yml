@@ -55,5 +55,9 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          # pass GitHub secrets to Docker
+          secrets: |
+            DVC_ACCESS_KEY_ID=${{ secrets.DVC_ACCESS_KEY_ID }}
+            DVC_SECRET_ACCESS_KEY=${{ secrets.DVC_SECRET_ACCESS_KEY }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
