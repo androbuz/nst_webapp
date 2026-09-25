@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Neural Style Transfer Demo</title>
+    <title>Neural Style Transfer</title>
     <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
     <h1>Neural Style Transfer</h1>
-    <p>Choose your style source: upload an image, describe the style in words, or process a video sequence.</p>
+    <p>Turn your photos and videos into artwork using an image or a text description as your style.</p>
 
     <div class="forms-container">
         <!-- Image‑guided form -->
@@ -23,7 +23,7 @@
                     <label for="styleImageImg">Style Image:</label>
                     <input type="file" id="styleImageImg" name="style_file" accept="image/*" required />
                 </div>
-                <button type="submit">Generate (Image)</button>
+                <button type="submit">Generate</button>
             </form>
         </div>
 
@@ -37,9 +37,9 @@
                 </div>
                 <div>
                     <label for="stylePrompt">Style Description:</label>
-                    <input type="text" id="stylePrompt" name="prompt" placeholder="e.g., 'Van Gogh Starry Night'" required />
+                    <input type="text" id="stylePrompt" name="prompt" placeholder="e.g., Van Gogh Starry Night" required />
                 </div>
-                <button type="submit">Generate (Text)</button>
+                <button type="submit">Generate</button>
             </form>
         </div>
 
@@ -52,15 +52,15 @@
                     <input type="file" id="contentVideo" name="video_file" accept="video/*" required />
                 </div>
                 <div>
-                    <label for="videoStyleImage">Style Image (Optional):</label>
+                    <label for="videoStyleImage">Style Image:</label>
                     <input type="file" id="videoStyleImage" name="style_file" accept="image/*" />
                 </div>
                 <div>
-                    <label for="videoStylePrompt">Style Description (Optional):</label>
-                    <input type="text" id="videoStylePrompt" name="prompt" placeholder="e.g., 'Picasso Abstract Cubism'" />
+                    <label for="videoStylePrompt">Style Description:</label>
+                    <input type="text" id="videoStylePrompt" name="prompt" placeholder="e.g., Van Gogh Starry Night" />
                 </div>
                 <p style="font-size: 0.8rem; color: #555;">Provide a Style Image OR Description.</p>
-                <button type="submit">Generate (Video)</button>
+                <button type="submit">Generate</button>
             </form>
         </div>
     </div>
