@@ -10,12 +10,14 @@
     <h1>Neural Style Transfer</h1>
     <p>Turn your photos and videos into artwork using an image or a text description as your style.</p>
 
+    <!-- contains all three style transfer forms -->
     <div class="forms-container">
-        <!-- Image‑guided form -->
+        <!-- form for transferring the style from one image to another -->
         <div class="form-card">
             <h2>Image Style</h2>
             <form id="imageForm" enctype="multipart/form-data">
                 <div>
+                    <!-- input for selecting the image that will be transformed -->
                     <label for="contentImageImg">Content Image:</label>
                     <input type="file" id="contentImageImg" name="content_file" accept="image/*" required />
                 </div>
@@ -27,15 +29,18 @@
             </form>
         </div>
 
-        <!-- Text‑guided form -->
+        <!-- form for applying a style described with text -->
         <div class="form-card">
             <h2>Text Style</h2>
+            <!-- collect the content image and text style description -->
             <form id="textForm" enctype="multipart/form-data">
                 <div>
+                    <!-- input for selecting the image that will be transformed -->
                     <label for="contentImageText">Content Image:</label>
                     <input type="file" id="contentImageText" name="content_file" accept="image/*" required />
                 </div>
                 <div>
+                    <!-- input for selecting the prompt description used as style -->
                     <label for="stylePrompt">Style Description:</label>
                     <input type="text" id="stylePrompt" name="prompt" placeholder="e.g., Van Gogh Starry Night" required />
                 </div>
@@ -43,14 +48,16 @@
             </form>
         </div>
 
-        <!-- Video-guided form -->
+        <!-- form for applying a style to a video -->
         <div class="form-card">
             <h2>Video Style</h2>
             <form id="videoForm" enctype="multipart/form-data">
+                <!-- input for selecting the video that will be transformed -->
                 <div>
                     <label for="contentVideo">Content Video:</label>
                     <input type="file" id="contentVideo" name="video_file" accept="video/*" required />
                 </div>
+                <!-- user can select an image or prompt to use as the video style -->
                 <div>
                     <label for="videoStyleImage">Style Image:</label>
                     <input type="file" id="videoStyleImage" name="style_file" accept="image/*" />
@@ -65,16 +72,16 @@
         </div>
     </div>
 
-    <!-- Shared result display -->
+    <!-- the shared result display -->
     <div id="resultArea" style="display: none;">
         <h3>Generated Result</h3>
         
-        <!-- Image Output Container -->
+        <!-- image results container -->
         <div id="imageResultContainer">
             <img id="resultImage" alt="Stylized result" style="max-width: 100%;" />
         </div>
         
-        <!-- Video Output Container -->
+        <!-- video results container -->
         <div id="videoResultContainer" style="display: none;">
             <video id="resultVideo" controls style="max-width: 100%;">
                 <source id="resultVideoSource" src="" type="video/mp4">
@@ -86,8 +93,8 @@
         <a id="downloadLink" href="#" download="stylized_output">Download</a>
     </div>
 
-    <!-- Shared loading indicator -->
-    <div id="loading" style="display: none;">Processing… (Videos may take a moment to process frame-by-frame)</div>
+    <!-- Ssared loading indicator -->
+    <div id="loading" style="display: none;">Processing…</div>
 
     <script src="/static/script.js"></script>
 </body>
