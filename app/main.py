@@ -28,11 +28,12 @@ async def read_index_head():
 # endpoint to send content image to be styled and its style image
 @app.post("/style-transfer-image")
 async def stylize_image(content_file: UploadFile = File(...), style_file: UploadFile = File(...)):
+    # open the content and style images
     content_pil = Image.open(BytesIO(await content_file.read()))
     style_pil = Image.open(BytesIO(await style_file.read()))
-
+    # get the styled image from the model 
     result_img = run_style_transfer_image(content_pil, style_pil)
-
+    # write the image data to a jpeg file
     img_io = BytesIO()
     result_img.save(img_io, 'JPEG')
     img_io.seek(0)
@@ -42,9 +43,9 @@ async def stylize_image(content_file: UploadFile = File(...), style_file: Upload
 @app.post("/style-transfer-text")
 async def stylize_text(content_file: UploadFile = File(...), prompt: str = Form(...)):
     content_pil = Image.open(BytesIO(await content_file.read()))
-
+    # get the styled image from the model 
     result_img = run_style_transfer_text(content_pil, prompt)
-
+    # write the image data to a jpeg file
     img_io = BytesIO()
     result_img.save(img_io, 'JPEG')
     img_io.seek(0)
@@ -64,7 +65,7 @@ async def stylize_video(
     input_path = f"/tmp/input_{temp_id}{input_ext}"
     output_path = f"/tmp/output_{temp_id}.mp4"
 
-    # Save uploaded video file locally
+    # saving uploaded video file locally
     with open(input_path, "wb") as buffer:
         shutil.copyfileobj(video_file.file, buffer)
 
@@ -72,7 +73,7 @@ async def stylize_video(
     if style_file:
         style_pil = Image.open(BytesIO(await style_file.read()))
 
-    # Run inference to produce the output video
+    # get the output video from the model
     run_style_transfer_video(
         input_video_path=input_path, 
         output_video_path=output_path, 
@@ -80,7 +81,7 @@ async def stylize_video(
         style_prompt=prompt
     )
 
-    # Clean up files in background after response is sent
+    # clean up files in background after response is sent
     def cleanup_temp_files():
         if os.path.exists(input_path):
             os.remove(input_path)
